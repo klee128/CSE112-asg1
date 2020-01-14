@@ -53,10 +53,7 @@
 ;;holds all functions (including operators)
 ; CAN'T BE CHANGD BY USER
 (define *function-table* (make-hash))
-;sets up the function that insersts things into *function-table*
-(define (set-function! key value)
-    (hash-set! *function-table* key value)
-)
+(define (set-function! key value) (hash-set! *function-table* key value))
 ;initializing *function-table*
 (for-each
     (lambda (pair) (set-function! (car pair) (cadr pair)))
@@ -98,7 +95,6 @@
 (define *array-table* (make-hash))
 
 ;;holds addresses of each line
-;;initialized by scanning list w/ read at beginning
 (define *label-table* (make-hash))
 (define (set-label! key value)
     (hash-set! *label-table* key value)
@@ -115,7 +111,14 @@
     (printf "==================================================~n")
     (printf "(~n")
     (for-each (lambda (line) (printf "~s~n" line)) program)
-    (printf ")~n"))
+    (printf ")~n")
+    (define program_length (length program)) ;program_length = numLines
+    ;this part putting into label-table add something for the weird last line?
+    (for-each 
+        (lambda (line) (set-label! (cdr line) (- (car line) 1)) )
+        program
+    )
+)
 
 ;----------------------------------------------------------------
 ; main function (what u do here will show up)
@@ -126,11 +129,11 @@
                (program (readlist-from-inputfile sbprogfile)))
               (write-program-by-line sbprogfile program)))
 
-;prints out the function-table hash to check if it works
-;     (printf "*function-table*:~n")
-;    (hash-for-each *function-table* 
-;        (lambda (key value)
-;                (printf "~s = ~s~n" key value))) 
+;prints out the label-table hash to check if it works
+    (printf "*label-table*:~n")
+    (hash-for-each *label-table* 
+        (lambda (key value)
+        (printf "~s = ~s~n" key value))) 
 ) ;end of main
 
 (printf "terminal-port? *stdin* = ~s~n" (terminal-port? *stdin*))

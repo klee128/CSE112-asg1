@@ -54,7 +54,7 @@
 ; CAN'T BE CHANGD BY USER
 (define *function-table* (make-hash))
 (define (set-function! key value) (hash-set! *function-table* key value))
-;initializing *function-table*
+;initializing *function-table* from stuff in pdf
 (for-each
     (lambda (pair) (set-function! (car pair) (cadr pair)))
     `(
@@ -71,11 +71,11 @@
         (^,expt)
     )
 )
+;add in the additional functions (like print or input etc)
 
 
 ;;holds value of all variables (updated as needed)
 ;;if variable not found, return 0
-;;table initialized w/ variables in "buildin symbols" section
 (define *variable-table* (make-hash))
 (define (set-variable! key value)
     (hash-set! *variable-table* key value))
@@ -85,8 +85,8 @@
     `( 
         (nan , (/ 0.0 0.0))
         (eof , 0.0)
-        (pi  , (acos -1.0))
-        (e   , (exp 1.0))
+        (pi  , (acos -1.0)) ;??
+        (e   , (exp 1.0)) ;??
     )
 )
 
@@ -112,10 +112,12 @@
     (printf "(~n")
     (for-each (lambda (line) (printf "~s~n" line)) program)
     (printf ")~n")
-    (define program_length (length program)) ;program_length = numLines
+    ;(define program_length (length program)) ;program_length = numLines
     ;this part putting into label-table add something for the weird last line?
+    ;just the first word
+    ;check for syntax errors here
     (for-each 
-        (lambda (line) (set-label! (cdr line) (- (car line) 1)) )
+        (lambda (line)  (when (>= (length line) 2) (set-label! (cdr line) (car line)) ) )
         program
     )
 )
@@ -133,7 +135,9 @@
     (printf "*label-table*:~n")
     (hash-for-each *label-table* 
         (lambda (key value)
-        (printf "~s = ~s~n" key value))) 
+        (printf "~s = ~s~n" key value)))
+
+
 ) ;end of main
 
 (printf "terminal-port? *stdin* = ~s~n" (terminal-port? *stdin*))

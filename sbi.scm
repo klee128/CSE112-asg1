@@ -1,7 +1,6 @@
 #!/afs/cats.ucsc.edu/courses/cse112-wm/usr/racket/bin/mzscheme -qr
-;; always have ^^ or it won't be evaluated
-;; $Id: sbi.scm,v 1.11 2019-12-11 16:16:51-08 - - $
-;; 
+;; $Id: sbi.scm,v 1.12 2020-01-08 17:13:13-08 - - $
+;;
 ;; NAME
 ;;    sbi.scm - silly basic interpreter
 ;;
@@ -13,7 +12,6 @@
 ;;    program, which is the executed.  Currently it is only printed.
 ;;
 
-;; define the standard input/output/error
 (define *stdin* (current-input-port))
 (define *stdout* (current-output-port))
 (define *stderr* (current-error-port))
@@ -35,7 +33,6 @@
     (die `("Usage: " ,*run-file* " filename"))
 )
 
-;;file input --> linked list?
 (define (readlist-from-inputfile filename)
     (let ((inputfile (open-input-file filename)))
          (if (not (input-port? inputfile))
@@ -44,17 +41,16 @@
                   (close-input-port inputfile)
                          program))))
 
-;;the "teminal-port *stdin* = #t" part i think
 (define (dump-stdin)
     (let ((token (read)))
          (printf "token=~a~n" token)
          (when (not (eq? token eof)) (dump-stdin))))
-
+		 
 ;;holds all functions (including operators)
 ; CAN'T BE CHANGD BY USER
 (define *function-table* (make-hash))
 (define (set-function! key value) (hash-set! *function-table* key value))
-;initializing *function-table* from stuff in pdf
+;initializing *function-table*
 (for-each
     (lambda (pair) (set-function! (car pair) (cadr pair)))
     `(
@@ -71,11 +67,10 @@
         (^,expt)
     )
 )
-;add in the additional functions (like print or input etc)
-
 
 ;;holds value of all variables (updated as needed)
 ;;if variable not found, return 0
+;;table initialized w/ variables in "buildin symbols" section
 (define *variable-table* (make-hash))
 (define (set-variable! key value)
     (hash-set! *variable-table* key value))
@@ -85,8 +80,8 @@
     `( 
         (nan , (/ 0.0 0.0))
         (eof , 0.0)
-        (pi  , (acos -1.0)) ;??
-        (e   , (exp 1.0)) ;??
+        (pi  , (acos -1.0))
+        (e   , (exp 1.0))
     )
 )
 
@@ -100,11 +95,35 @@
     (hash-set! *label-table* key value)
 )
 
+;goes to here from the write-program-line function
+(define (print-statement line)
 
-;;======
-;; sbi.scm "filename"
-;;======
-;;then each line in the input ifle
+		(if (null? (cdr line))
+			(printf "Nothing to print from this line ~n")            
+            ;when not just line number...
+			(when not (=(length(cdr line))0) 
+                ;if first command is print... execute the print
+                (if (eqv? (caadr line) 'print) 
+                    (execute-the-print (cdr line))
+                    (printf "not print~n")
+                )
+			)
+		)
+
+)
+ 
+;goes to here from print-statement function
+;line = cdr line = only the function part
+(define (execute-the-print line)
+	(printf "going into func1~n") ;delete
+    ;if string, just print it out
+	(if (string? (cadar line))
+		(display (cadar line))
+		(display "not a string")	
+	)
+		
+)
+
 (define (write-program-by-line filename program)
     (printf "==================================================~n")
     (printf "~a: ~s~n" *run-file* filename)
@@ -112,33 +131,32 @@
     (printf "(~n")
     (for-each (lambda (line) (printf "~s~n" line)) program)
     (printf ")~n")
-    ;(define program_length (length program)) ;program_length = numLines
-    ;this part putting into label-table add something for the weird last line?
-    ;just the first word
-    ;check for syntax errors here
+    ;checking if it is a print statement
+	(for-each (lambda (line) (print-statement line)) program)
+
+    ;this part putting into label-table
+    ;check for syntax errors?
     (for-each 
         (lambda (line)  (when (>= (length line) 2) (set-label! (cdr line) (car line)) ) )
         program
     )
 )
 
-;----------------------------------------------------------------
-; main function (what u do here will show up)
 (define (main arglist)
     (if (or (null? arglist) (not (null? (cdr arglist))))
         (usage-exit)
         (let* ((sbprogfile (car arglist))
                (program (readlist-from-inputfile sbprogfile)))
-              (write-program-by-line sbprogfile program)))
-
-;prints out the label-table hash to check if it works
-    (printf "*label-table*:~n")
-    (hash-for-each *label-table* 
-        (lambda (key value)
-        (printf "~s = ~s~n" key value)))
-
-
-) ;end of main
+               (write-program-by-line sbprogfile program)
+			  
+			  ))
+			  
+	;prints out the label-table hash to check if it works
+    ;(printf "*label-table*:~n")
+    ;(hash-for-each *label-table* 
+    ;(lambda (key value)
+    ;(printf "~s = ~s~n" key value))) 			  
+);end of main
 
 (printf "terminal-port? *stdin* = ~s~n" (terminal-port? *stdin*))
 (if (terminal-port? *stdin*)

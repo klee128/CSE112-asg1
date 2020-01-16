@@ -51,6 +51,7 @@
 (define *function-table* (make-hash))
 (define (set-function! key value) (hash-set! *function-table* key value))
 ;initializing *function-table*
+;add the functions here??
 (for-each
     (lambda (pair) (set-function! (car pair) (cadr pair)))
     `(
@@ -72,9 +73,7 @@
 ;;if variable not found, return 0
 ;;table initialized w/ variables in "buildin symbols" section
 (define *variable-table* (make-hash))
-(define (set-variable! key value)
-    (hash-set! *variable-table* key value))
-;initilizing variable-table
+(define (set-variable! key value) (hash-set! *variable-table* key value) )
 (for-each
    (lambda (pair) (set-variable! (car pair) (cadr pair)))
     `( 
@@ -88,38 +87,44 @@
 ;;holds all arrays defined in program
 ;;created with make-vector and updated with vector-set!
 (define *array-table* (make-hash))
+(define (set-array! key value) (hash-set! *array-table* key value) )
 
 ;;holds addresses of each line
 (define *label-table* (make-hash))
-(define (set-label! key value)
-    (hash-set! *label-table* key value)
-)
+(define (set-label! key value) (hash-set! *label-table* key value) )
 
 ;goes to here from the write-program-line function
 (define (print-statement line)
-
-		(if (null? (cdr line))
-			(printf "Nothing to print from this line ~n")            
-            ;when not just line number...
-			(when not (=(length(cdr line))0) 
-                ;if first command is print... execute the print
-                (if (eqv? (caadr line) 'print) 
-                    (execute-the-print (cdr line))
-                    (printf "not print~n")
-                )
-			)
+    ;check the type of statement
+	(if (null? (cdr line))
+	    (printf "Nothing to print from this line ~n")            
+        ;when not just line number...
+		(when not (=(length(cdr line))0) 
+            ;if first command is print... execute the print
+            (if (eqv? (caadr line) 'print) 
+                (execute-the-print (cdr line))
+                (printf "not print~n")
+            )
 		)
+	)
 
 )
  
 ;goes to here from print-statement function
 ;line = cdr line = only the function part
 (define (execute-the-print line)
-	(printf "going into func1~n") ;delete
+	(printf "going into print~n") ;delete
     ;if string, just print it out
-	(if (string? (cadar line))
-		(display (cadar line))
-		(display "not a string")	
+    ;;got to do it part by part
+
+    ;(printf "cadar line is: ~s~n" (cadar line))
+    ;(printf "cddar line is: ~s~n" (cddar line))
+
+
+	(when (string? (cadar line))
+		(display (cadar line) ) ;need to make new line 
+		(newline)
+        (execute-the-print (cddar line))	
 	)
 		
 )

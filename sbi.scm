@@ -97,40 +97,57 @@
 
 ;goes to here from the write-program-line function
 (define (print-statement line)
-
-		(if (null? (cdr line))
-			(printf "Nothing to print from this line ~n")            
-            ;when not just line number...
-			(when not (=(length(cdr line))0) 
-                ;if first command is print... execute the print
-                ;caadr = function name (print, let, etc)
-                ;cdadr = the other stuff thats important
-                (when (eqv? (caadr line) 'print)
-                    (printf "in ps: input is: ~s~n" (cdadr line))
-                    (execute-the-print (cdadr line))
-                    ;(printf "not print~n")
-                )
-			)
+	(if (null? (cdr line))
+		(printf "Nothing to print from this line ~n")            
+        ;when not just line number...
+		(when not (=(length(cdr line))0) 
+            ;if first command is print... execute the print
+            ;caadr = function name (print, let, etc)
+            ;cdadr = the other stuff thats important
+            (when (eqv? (caadr line) 'print)
+                (execute-the-print (cdadr line))
+            )
 		)
+	)
 
 )
  
 ;goes to here from print-statement function
 ;line = everything after 'print'
 (define (execute-the-print line)
-    ;if string, just print it out
-    (when (string? (car line))
-        (display (car line))
-        (newline)	
-    )
+    ;if have something to print out
+    (when (> (length line) 0)
+        ;(printf "length of line is: ~s~n" (length line))
+        (printf "~s ~n" line)
 
-    
+        ;if string, just print it out
+        (when (string? (car line))
+            (display (car line))
+            (newline)	
+        )
+        ;if number, add 0.0 to make real number
+        (when (number? (car line))
+            (printf "is number~n")
+        ) 
+ 
+        ;if is a pair ex. (+ 2 4) 
+        (when (pair? (car line)) 
+            (printf "is pair~n")
+            ;(define first (caar line))
+            (if (hash-has-key? *function-table* (caar line))
+                (printf "is in function-hash ~n")
+                 ;(printf "first is: ~s~n" (cdar line))
+                
+                (printf "is not in function-hash ~n")
+            )
+        )
+    )
+   
     ;keep going down the thingamajig until nothing else to print
     (when (> (length line) 1 )
-        ;(printf "has more stuff~n") 
+        (printf "in recursion~n")
         (execute-the-print (cdr line))
     )
-	
 )
 
 (define (write-program-by-line filename program)

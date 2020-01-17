@@ -103,9 +103,11 @@
             ;when not just line number...
 			(when not (=(length(cdr line))0) 
                 ;if first command is print... execute the print
+                ;caadr = function name (print, let, etc)
+                ;cdadr = the other stuff thats important
                 (when (eqv? (caadr line) 'print)
                     (printf "in ps: input is: ~s~n" (cdadr line))
-                    (execute-the-print (cdr line))
+                    (execute-the-print (cdadr line))
                     ;(printf "not print~n")
                 )
 			)
@@ -114,18 +116,21 @@
 )
  
 ;goes to here from print-statement function
-;line = cdr line = only the function part
+;line = everything after 'print'
 (define (execute-the-print line)
-	(printf "going into func1~n") ;delete
     ;if string, just print it out
-    (printf "input is: ~s~n" (cdar line))
-    (printf "first part is: ~s~n" (cadar line))
-    (printf "second part is: ~s~n" (cddar line))
-	(when (string? (cadar line))
-		(display (cadar line))
-		(newline)	
-	)
-		
+    (when (string? (car line))
+        (display (car line))
+        (newline)	
+    )
+
+    
+    ;keep going down the thingamajig until nothing else to print
+    (when (> (length line) 1 )
+        ;(printf "has more stuff~n") 
+        (execute-the-print (cdr line))
+    )
+	
 )
 
 (define (write-program-by-line filename program)

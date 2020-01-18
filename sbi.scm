@@ -65,6 +65,7 @@
         (+,+) (-,-) (*,*) (/,/) 
         (<,<) (>,> (<=,<=) (>=,>=))
         (^,expt)
+        
     )
 )
 
@@ -101,9 +102,10 @@
 		(printf "Nothing to print from this line ~n")            
         ;when not just line number...
 		(when not (=(length(cdr line))0) 
-            ;if first command is print... execute the print
             ;caadr = function name (print, let, etc)
             ;cdadr = the other stuff thats important
+
+            ;if first command is print... execute the print
             (when (eqv? (caadr line) 'print)
                 (execute-the-print (cdadr line))
             )
@@ -133,11 +135,8 @@
         ;if is a pair ex. (+ 2 4) 
         (when (pair? (car line)) 
             (printf "is pair~n")
-            ;(define first (caar line))
             (if (hash-has-key? *function-table* (caar line))
-                (printf "is in function-hash ~n")
-                 ;(printf "first is: ~s~n" (cdar line))
-                
+                (display ((hash-ref *function-table* (caar line)) (cadar line) (caddar line) ) )
                 (printf "is not in function-hash ~n")
             )
         )
@@ -157,8 +156,6 @@
     (printf "(~n")
     (for-each (lambda (line) (printf "~s~n" line)) program)
     (printf ")~n")
-    ;checking if it is a print statement
-	(for-each (lambda (line) (print-statement line)) program)
 
     ;this part putting into label-table
     ;check for syntax errors?
@@ -166,6 +163,9 @@
         (lambda (line)  (when (>= (length line) 2) (set-label! (cdr line) (car line)) ) )
         program
     )
+
+    ;checking if it is a print statement
+	(for-each (lambda (line) (print-statement line)) program)
 )
 
 (define (main arglist)
@@ -177,11 +177,6 @@
 			  
 			  ))
 			  
-	;prints out the label-table hash to check if it works
-    ;(printf "*label-table*:~n")
-    ;(hash-for-each *label-table* 
-    ;(lambda (key value)
-    ;(printf "~s = ~s~n" key value))) 			  
 );end of main
 
 (printf "terminal-port? *stdin* = ~s~n" (terminal-port? *stdin*))

@@ -56,7 +56,6 @@
 (define *variable-table* (make-hash))
 (define (set-variable! key value)(hash-set! *variable-table* key value))
 
-
 ;;holds all arrays defined in program
 ;;created with make-vector and updated with vector-set!
 (define *array-table* (make-hash))
@@ -77,20 +76,20 @@
         ((number? word) 
             (+ word 0.0)
         )
+        ;if is in variable-table, do da thing
+        ((hash-has-key? *variable-table* word)
+            (hash-ref *variable-table* word)
+        )
         ;if pair, calculate and return the result
         ((pair? word)
-            ;if +-*/
+            ;if is in function-table...
             (if (hash-has-key? *function-table* (car word))
                 (cond 
                     ;if is a procedure? if doing something and not just a vector/array
                     ((procedure? (hash-ref *function-table* (car word)))
-                        (if (and (number? (cadr word)) (number? (caddr word)))
-                            ;if (operator number number) format
-                            ((hash-ref *function-table* (car word)) (cadr word) (caddr word))
-                            ;if nested operations?
-                            (apply (hash-ref *function-table* (car word)) (map parse-it (cdr word)))
-                        )
+                        (apply (hash-ref *function-table* (car word)) (map parse-it (cdr word)))
                     )
+                    ;if is an array, do it here
                 )
                 (printf "is not in function-hash ~n")
             )

@@ -129,7 +129,8 @@
         )
         ;if number, add 0.0 to make real number
         (when (number? (car line))
-            (printf "is number~n")
+            (display (+ 0.0 (car line)))
+			(newline)
         ) 
  
         ;if is a pair ex. (+ 2 4) 

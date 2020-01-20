@@ -83,7 +83,7 @@
         ;if pair, calculate and return the result
         ((pair? word)
             ;if is in function-table...
-            (if (hash-has-key? *function-table* (car word))
+            (when (hash-has-key? *function-table* (car word))
                 (cond 
                     ;if is a procedure? if doing something and not just a vector/array
                     ((procedure? (hash-ref *function-table* (car word)))
@@ -91,7 +91,6 @@
                     )
                     ;if is an array, do it here
                 )
-                (printf "is not in function-hash ~n")
             )
         )
         ;else, output error message 
@@ -129,6 +128,12 @@
     (newline)
 )
 
+;line = variable_name + value
+(define (execute-the-let line)
+    (printf "variable is ~s value is ~s~n" (car line) (cadr line))
+    (set-variable! (car line) (parse-it (cadr line)))
+)
+
 (define (write-program-by-line filename program)
     (printf "==================================================~n")
     (printf "~a: ~s~n" *run-file* filename)
@@ -162,7 +167,8 @@
         (+,+) (-,-) (*,*) (/,/) 
         (<,<) (>,> (<=,<=) (>=,>=))
         (^,expt) 
-        (print, execute-the-print)      
+        (print, execute-the-print)
+        (let, execute-the-let)      
     )
 )
 
@@ -183,8 +189,13 @@
         (let* ((sbprogfile (car arglist))
                (program (readlist-from-inputfile sbprogfile)))
                (write-program-by-line sbprogfile program)
-			  
 			  ))
+    ;prints out the function-table hash to check if it works
+     (printf "*variable-table*:~n")
+    (hash-for-each *variable-table* 
+        (lambda (key value)
+                (printf "~s = ~s~n" key value))) 
+
 			  
 );end of main
 

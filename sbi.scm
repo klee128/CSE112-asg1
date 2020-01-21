@@ -50,6 +50,122 @@
 ; CAN'T BE CHANGD BY USER
 (define *function-table* (make-hash))
 (define (set-function! key value) (hash-set! *function-table* key value))
+
+;;holds value of all variables (updated as needed)
+;;if variable not found, return 0
+(define *variable-table* (make-hash))
+(define (set-variable! key value)(hash-set! *variable-table* key value))
+
+;;holds all arrays defined in program
+;;created with make-vector and updated with vector-set!
+(define *array-table* (make-hash))
+(define (set-array! key value) (hash-set! *array-table* key value))
+
+;;holds addresses of each line
+(define *label-table* (make-hash))
+(define (set-label! key value) (hash-set! *label-table* key value))
+
+;what to do w/ input if it is a ...
+(define (parse-it word)
+    (cond 
+        ;if is string, return string
+        ((string? word) 
+            word
+        )
+        ;if number, add 0.0 to return real number
+        ((number? word) 
+            (+ word 0.0)
+        )
+        ;if is in variable-table, do da thing
+        ((hash-has-key? *variable-table* word)
+            (hash-ref *variable-table* word)
+        )
+        ;if pair, calculate and return the result
+        ((pair? word)
+
+            ;if is in function-table...
+            (when (hash-has-key? *function-table* (car word))
+                (cond 
+                    ;if is a procedure? if doing something and not just a vector/array
+                    ((procedure? (hash-ref *function-table* (car word)))
+                        (apply (hash-ref *function-table* (car word)) (map parse-it (cdr word)))
+                    )
+                    ;if is an array, do it here
+                )
+            )
+        )
+        ;else, output error message 
+        (else 
+            (die '("Invalid Input: " word))
+        )
+    )    
+)
+
+;goes to here from the write-program-line function
+;basically scanning to see the thing
+(define (print-statement line)          
+    ;when not just line number...
+	(when (and (not (null? (cdr line)))  (> (length (cdr line)) 0) ) 
+        ;caadr = function name (print, let, etc)
+        ;cdadr = the other stuff thats important
+        ;if found in function-table, do the thing
+        (when (hash-has-key? *function-table* (caadr line))
+            ((hash-ref *function-table* (caadr line)) (cdadr line))
+        )
+	)
+)
+
+;evaluate and check the condition, if it is an if statement
+(define (execute-the-if line)
+
+    (display (parse-it(car line)))
+    (when (> (length line) 0)
+        (when (parse-it(car line))
+            (display "Condition evaluated to true!")
+            (newline)
+        )
+    )
+
+)
+ 
+;how to print :)
+;line = everything after 'print'
+(define (execute-the-print line)
+    ;base-case
+    (when (> (length line) 0)
+        (display (parse-it (car line)))    
+    )
+    ;keep going down the thingamajig until nothing else to print
+    (when (> (length line) 1 )
+        (execute-the-print (cdr line))
+    )
+    (newline)
+)
+
+;line = variable_name + value
+(define (execute-the-let line)
+    (printf "variable is ~s value is ~s~n" (car line) (cadr line))
+    (set-variable! (car line) (parse-it (cadr line)))
+)
+
+(define (write-program-by-line filename program)
+    (printf "==================================================~n")
+    (printf "~a: ~s~n" *run-file* filename)
+    (printf "==================================================~n")
+    (printf "(~n")
+    (for-each (lambda (line) (printf "~s~n" line)) program)
+    (printf ")~n")
+
+    ;this part putting into label-table
+    (for-each 
+        (lambda (line)  (when (>= (length line) 2) (set-label! (cdr line) (car line)) ) )
+        program
+    )
+
+    ;go through program line-by-line and execute it
+	(for-each (lambda (line) (print-statement line)) program)
+)
+
 ;initializing *function-table*
 (for-each
     (lambda (pair) (set-function! (car pair) (cadr pair)))
@@ -63,17 +179,14 @@
         (sin, sin) (sqrt, sqrt)
         (tan, tan) (truncate, truncate)
         (+,+) (-,-) (*,*) (/,/) 
-        (<,<) (>,> (<=,<=) (>=,>=))
-        (^,expt)
+        (<,<) (>,>) (<=,<=) (>=,>=)
+        (^,expt) 
+        (print, execute-the-print)
+        (let, execute-the-let)  
+        (if, execute-the-if)    
     )
 )
 
-;;holds value of all variables (updated as needed)
-;;if variable not found, return 0
-;;table initialized w/ variables in "buildin symbols" section
-(define *variable-table* (make-hash))
-(define (set-variable! key value)
-    (hash-set! *variable-table* key value))
 ;initilizing variable-table
 (for-each
    (lambda (pair) (set-variable! (car pair) (cadr pair)))
@@ -85,95 +198,20 @@
     )
 )
 
-;;holds all arrays defined in program
-;;created with make-vector and updated with vector-set!
-(define *array-table* (make-hash))
-
-;;holds addresses of each line
-(define *label-table* (make-hash))
-(define (set-label! key value)
-    (hash-set! *label-table* key value)
-)
-
-(define (print-statement line)
-
-	;(printf "~s~n" (car(car(cdr line))))
-	
-	;(if (list? line)  (printf "is list~n") (printf "is not list~n"))
-	;(printf "~s~n" line)
-	;(if(eqv? (cdaar line) 'print)
-		(if (null? (cdr line))
-			(display "Nothing to print from this line ~n")
-			(when not (=(length(cdr line))0)
-				(execute-the-print (cdr line))
-			)
-		)
-		;(display "not a print ")
-	;)
-)
-
-(define (check-data-type type)
-	(cond 
-		[(string? type ) type]
-	)
-)
-
-(define (execute-the-print line)
-
-	(display "going into func1")
-	;printf "this is the whole line ~s~n" line)
-	;(printf "cdar of line is ~s~n" (cadar line))
-	(if(eqv? (caar line) 'print)
-		;(printf "recognizing its print ~n")
-		(if (string? (cdr line))
-			(display (cdr line))
-			(display (check-data-type(cdr line)))	
-		)
-	
-		;(printf "recognizing its print but in else statement ~n")
-		(when not (null?(caddr line))
-			(when (not (=(length(caddr line))0))
-
-				(execute-the-print(caddr line))
-
-			)
-		
-		)
-	)		
-)
-
-(define (write-program-by-line filename program)
-    (printf "==================================================~n")
-    (printf "~a: ~s~n" *run-file* filename)
-    (printf "==================================================~n")
-    (printf "(~n")
-    (for-each (lambda (line) (printf "~s~n" line)) program)
-    (printf ")~n")
-	(for-each (lambda (line) (print-statement line)) program)
-	;(printf "~s~n" line))
-    (printf ")~n")
-    (define program_length (length program)) ;program_length = numLines
-    ;this part putting into label-table add something for the weird last line?
-    (for-each 
-        (lambda (line) (set-label! (cdr line) (car line)))
-        program
-    )
-)
-
 (define (main arglist)
     (if (or (null? arglist) (not (null? (cdr arglist))))
         (usage-exit)
         (let* ((sbprogfile (car arglist))
                (program (readlist-from-inputfile sbprogfile)))
                (write-program-by-line sbprogfile program)
-			  
 			  ))
+    ;prints out the function-table hash to check if it works
+     (printf "*variable-table*:~n")
+    (hash-for-each *variable-table* 
+        (lambda (key value)
+                (printf "~s = ~s~n" key value))) 
+
 			  
-			  ;prints out the label-table hash to check if it works
-    (printf "*label-table*:~n")
-    (hash-for-each *label-table* 
-    (lambda (key value)
-    (printf "~s = ~s~n" key value))) 			  
 );end of main
 
 (printf "terminal-port? *stdin* = ~s~n" (terminal-port? *stdin*))

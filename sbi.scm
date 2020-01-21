@@ -151,6 +151,18 @@
     
 )
 
+;evaluate and check the condition, if it is an if statement
+(define (execute-the-if line)
+
+    (display (parse-it(car line)))
+    (when (> (length line) 0)
+        (when (parse-it(car line))
+            (display "Condition evaluated to true!")
+            (newline)
+        )
+    )
+)
+
 (define (write-program-by-line filename program)
     (printf "==================================================~n")
     (printf "~a: ~s~n" *run-file* filename)
@@ -184,11 +196,12 @@
         (sin, sin) (sqrt, sqrt)
         (tan, tan) (truncate, truncate)
         (+,+) (-,-) (*,*) (/,/) 
-        (<,<) (>,> (<=,<=) (>=,>=))
+        (<,<) (>,>) (<=,<=) (>=,>=)
         (^,expt) 
         (print, execute-the-print) ;need to do array
         (let, execute-the-let)     ;array vs variable? + replace? something about asub?
         (dim, execute-the-dim)     ;not used much so should be good lol
+        (if, execute-the-if)  
     )
 )
 

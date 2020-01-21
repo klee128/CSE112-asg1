@@ -81,10 +81,6 @@
             (hash-ref *variable-table* word)
         )
 
-        ((hash-has-key? *array-table* word)
-            (hash)
-        )
-
         ;if pair, calculate and return the result
         ((pair? word)
             ;if is in function-table...
@@ -107,20 +103,26 @@
 
 ;goes to here from the write-program-line function
 ;going through the program line by line
-(define (print-statement line)          
-    ;when not just line number...
-	(when (and (not (null? (cdr line)))  (> (length (cdr line)) 0) ) 
-        (if (pair? (cadr line))
-            ;if no label (2nd thing is the function)
-            (when (hash-has-key? *function-table* (caadr line))
-                ((hash-ref *function-table* (caadr line)) (cdadr line))
-            )
-            ;if 2nd thing is label
-            (when (hash-has-key? *function-table* (caaddr line))
-                ((hash-ref *function-table* (caaddr line)) (cdaddr line)) 
+(define (print-statement program line_number)
+    (when (< line_number (length program))
+        (define line (list-ref program line_number))
+        ;when not just line number...
+        (when (and (not (null? (cdr line)))  (> (length (cdr line)) 0) ) 
+            (if (pair? (cadr line))
+                ;when have function to do
+                (when (hash-has-key? *function-table* (caadr line))
+                     ((hash-ref *function-table* (caadr line)) (cdadr line))
+                )
+                ;if label and have function to do
+                (when (and (> (length line) 2) (hash-has-key? *function-table* (caaddr line)) )
+                     ((hash-ref *function-table* (caaddr line)) (cdaddr line)) 
+                )
             )
         )
-	)
+        ;move on to next line
+        (print-statement program (+ line_number 1))
+    )          
+
 )
  
 ;how to print :)
@@ -142,6 +144,8 @@
     (set-variable! (car line) (parse-it (cadr line)))
 )
 
+;(define (execute-the-))
+
 (define (write-program-by-line filename program)
     (printf "==================================================~n")
     (printf "~a: ~s~n" *run-file* filename)
@@ -150,14 +154,18 @@
     (for-each (lambda (line) (printf "~s~n" line)) program)
     (printf ")~n")
 
-    ;this part putting into label-table
+    ;this part putting into label-table (do line-number -1 to get right index)
+    ;(set-label! (cdr line) (- (car line) 1))
     (for-each 
-        (lambda (line)  (when (>= (length line) 2) (set-label! (cdr line) (car line)) ) )
+        (lambda (line)  (when (= (length line) 3) (set-label! (cadr line) (- (car line) 1)) ) )
         program
     )
 
     ;go through program line-by-line and execute it
-	(for-each (lambda (line) (print-statement line)) program)
+	;(for-each (lambda (line) (print-statement line)) program)
+    (print-statement program 0)
+
+
 )
 
 ;initializing *function-table*
@@ -199,10 +207,10 @@
                (write-program-by-line sbprogfile program)
 			  ))
     ;prints out the function-table hash to check if it works
-     (printf "*variable-table*:~n")
-    (hash-for-each *variable-table* 
-        (lambda (key value)
-                (printf "~s = ~s~n" key value))) 
+    ;  (printf "*variable-table*:~n")
+    ; (hash-for-each *label-table* 
+    ;     (lambda (key value)
+    ;             (printf "~s = ~s~n" key value))) 
 
 			  
 );end of main

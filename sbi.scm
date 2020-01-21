@@ -76,10 +76,15 @@
         ((number? word) 
             (+ word 0.0)
         )
-        ;if is in variable-table, do da thing
+        ;if key in *variable-table*, return value
         ((hash-has-key? *variable-table* word)
             (hash-ref *variable-table* word)
         )
+
+        ((hash-has-key? *array-table* word)
+            (hash)
+        )
+
         ;if pair, calculate and return the result
         ((pair? word)
             ;if is in function-table...
@@ -101,15 +106,19 @@
 )
 
 ;goes to here from the write-program-line function
-;basically scanning to see the thing
+;going through the program line by line
 (define (print-statement line)          
     ;when not just line number...
 	(when (and (not (null? (cdr line)))  (> (length (cdr line)) 0) ) 
-        ;caadr = function name (print, let, etc)
-        ;cdadr = the other stuff thats important
-        ;if found in function-table, do the thing
-        (when (hash-has-key? *function-table* (caadr line))
-            ((hash-ref *function-table* (caadr line)) (cdadr line))
+        (if (pair? (cadr line))
+            ;if no label (2nd thing is the function)
+            (when (hash-has-key? *function-table* (caadr line))
+                ((hash-ref *function-table* (caadr line)) (cdadr line))
+            )
+            ;if 2nd thing is label
+            (when (hash-has-key? *function-table* (caaddr line))
+                ((hash-ref *function-table* (caaddr line)) (cdaddr line)) 
+            )
         )
 	)
 )
@@ -130,7 +139,6 @@
 
 ;line = variable_name + value
 (define (execute-the-let line)
-    (printf "variable is ~s value is ~s~n" (car line) (cadr line))
     (set-variable! (car line) (parse-it (cadr line)))
 )
 

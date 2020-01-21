@@ -1,6 +1,6 @@
 #!/afs/cats.ucsc.edu/courses/cse112-wm/usr/racket/bin/mzscheme -qr
 ;; $Id: sbi.scm,v 1.12 2020-01-08 17:13:13-08 - - $
-;;
+;; 
 ;; NAME
 ;;    sbi.scm - silly basic interpreter
 ;;
@@ -80,6 +80,7 @@
         ((hash-has-key? *variable-table* word)
             (hash-ref *variable-table* word)
         )
+        ;if key in *array-table* return the list
 
         ;if pair, calculate and return the result
         ((pair? word)
@@ -106,7 +107,6 @@
 (define (print-statement program line_number)
     (when (< line_number (length program))
         (define line (list-ref program line_number))
-        ;when not just line number...
         (when (and (not (null? (cdr line)))  (> (length (cdr line)) 0) ) 
             (if (pair? (cadr line))
                 ;when have function to do
@@ -132,7 +132,7 @@
     (when (> (length line) 0)
         (display (parse-it (car line)))    
     )
-    ;keep going down the thingamajig until nothing else to print
+    ;recursively print rest of line
     (when (> (length line) 1 )
         (execute-the-print (cdr line))
     )
@@ -140,11 +140,16 @@
 )
 
 ;line = variable_name + value
+;array vs variable? check later!!!!!!
 (define (execute-the-let line)
     (set-variable! (car line) (parse-it (cadr line)))
 )
 
-;(define (execute-the-))
+;line = asub + name + length
+(define (execute-the-dim line)
+    (set-array! (cadar line) (make-vector (caddar line) 0.0) )
+    
+)
 
 (define (write-program-by-line filename program)
     (printf "==================================================~n")
@@ -155,14 +160,12 @@
     (printf ")~n")
 
     ;this part putting into label-table (do line-number -1 to get right index)
-    ;(set-label! (cdr line) (- (car line) 1))
     (for-each 
         (lambda (line)  (when (= (length line) 3) (set-label! (cadr line) (- (car line) 1)) ) )
         program
     )
 
     ;go through program line-by-line and execute it
-	;(for-each (lambda (line) (print-statement line)) program)
     (print-statement program 0)
 
 
@@ -183,8 +186,9 @@
         (+,+) (-,-) (*,*) (/,/) 
         (<,<) (>,> (<=,<=) (>=,>=))
         (^,expt) 
-        (print, execute-the-print)
-        (let, execute-the-let)      
+        (print, execute-the-print) ;need to do array
+        (let, execute-the-let)     ;array vs variable? + replace? something about asub?
+        (dim, execute-the-dim)     ;not used much so should be good lol
     )
 )
 
@@ -205,13 +209,7 @@
         (let* ((sbprogfile (car arglist))
                (program (readlist-from-inputfile sbprogfile)))
                (write-program-by-line sbprogfile program)
-			  ))
-    ;prints out the function-table hash to check if it works
-    ;  (printf "*variable-table*:~n")
-    ; (hash-for-each *label-table* 
-    ;     (lambda (key value)
-    ;             (printf "~s = ~s~n" key value))) 
-
+		))
 			  
 );end of main
 

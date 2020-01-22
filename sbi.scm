@@ -1,6 +1,11 @@
 #!/afs/cats.ucsc.edu/courses/cse112-wm/usr/racket/bin/mzscheme -qr
+
+;; Kelsy Lee, klee128
+;; Sruthi Jaganathan, sjaganat
+;; CSE112 Assignment 1
+
 ;; $Id: sbi.scm,v 1.12 2020-01-08 17:13:13-08 - - $
-;;
+;; 
 ;; NAME
 ;;    sbi.scm - silly basic interpreter
 ;;
@@ -76,13 +81,14 @@
         ((number? word) 
             (+ word 0.0)
         )
-        ;if is in variable-table, do da thing
+        ;if key in *variable-table*, return value
         ((hash-has-key? *variable-table* word)
             (hash-ref *variable-table* word)
         )
+        ;if key in *array-table* return the list
+
         ;if pair, calculate and return the result
         ((pair? word)
-
             ;if is in function-table...
             (when (hash-has-key? *function-table* (car word))
                 (cond 
@@ -102,31 +108,57 @@
 )
 
 ;goes to here from the write-program-line function
-;basically scanning to see the thing
-(define (print-statement line)          
-    ;when not just line number...
-	(when (and (not (null? (cdr line)))  (> (length (cdr line)) 0) ) 
-        ;caadr = function name (print, let, etc)
-        ;cdadr = the other stuff thats important
-        ;if found in function-table, do the thing
-        (when (hash-has-key? *function-table* (caadr line))
-            ((hash-ref *function-table* (caadr line)) (cdadr line))
-        )
-	)
-)
+;going through the program line by line
+(define (print-statement program line_number)
+    (when (< line_number (length program))
+        ;(printf "line number is: ~s~n")
+        (define line (list-ref program line_number))
+        (printf "the line is: ~s~n" line)
+        (when (and (not (null? (cdr line)))  (> (length (cdr line)) 0) ) 
+            (if (pair? (cadr line))
+                ;when have function to do
+                (when (hash-has-key? *function-table* (caadr line))
+                    (cond 
+                        ((eqv? (caadr line) 'if)
+                            (execute-the-if program (cdadr line)))
+                        ((eqv? (caadr line) 'goto) 
+                            (display "It is a goto!  ")
+                            (display (cdadr line))
+                            (newline)
+                            (execute-the-goto program (cdadr line)))
+                    
+                        (else 
+                            ((hash-ref *function-table* (caadr line)) (cdadr line))
+                        )
+                    )
+    
+                )
+                
+                ;if label and have function to do
+                (when (and (> (length line) 2) (hash-has-key? *function-table* (caaddr line)) )
 
-;evaluate and check the condition, if it is an if statement
-(define (execute-the-if line)
-
-    (display (parse-it(car line)))
-    (when (> (length line) 0)
-        (when (parse-it(car line))
-            (display "Condition evaluated to true!")
-            (newline)
+                    (when (hash-has-key? *function-table* (caaddr line))
+                        (cond 
+                            ((eqv? (caaddr line) 'if)
+                                (execute-the-if program (cdaddr line)))
+                            ((eqv? (caaddr line) 'goto)
+                                (execute-the-goto program (cdaddr line)))
+                                ;(display " 3:It is a goto!")
+                            
+                            (else
+                                ((hash-ref *function-table* (caaddr line)) (cdaddr line))
+                            )
+                        )
+                    )
+                )   
+            )
         )
+        ;move on to next line
+        (printf "going to next line: ~s~n" (+ line_number 1))
+        (print-statement program (+ line_number 1))
     )
+)          
 
-)
  
 ;how to print :)
 ;line = everything after 'print'
@@ -135,17 +167,60 @@
     (when (> (length line) 0)
         (display (parse-it (car line)))    
     )
-    ;keep going down the thingamajig until nothing else to print
+    ;recursively print rest of line
     (when (> (length line) 1 )
         (execute-the-print (cdr line))
     )
-    (newline)
+    (newline) 
 )
 
 ;line = variable_name + value
+;array vs variable? check later!!!!!!
 (define (execute-the-let line)
-    (printf "variable is ~s value is ~s~n" (car line) (cadr line))
     (set-variable! (car line) (parse-it (cadr line)))
+)
+
+;line = asub + name + length
+(define (execute-the-dim line)
+    (set-array! (cadar line) (make-vector (caddar line) 0.0) )
+    
+)
+
+;evaluate and check the condition, if it is an if statement
+(define (execute-the-if program line)
+
+    ;(display (parse-it(car line)))
+    (when (> (length line) 0)
+        (when (parse-it(car line))
+            ;Check if the label table has this label, if it does, extract the line number associated with it, 
+            ;transfer control to this line
+            (when (hash-has-key? *label-table* (car(cdr line)))
+                (print-statement program (hash-ref *label-table* (car(cdr line))))
+            )
+        )
+    )
+)
+
+(define (execute-the-goto program line)
+
+    (when (hash-has-key? *label-table* (car line))
+        ;(display "Going to enter print-statement again")
+        ;(display (hash-ref *label-table* (car line)))
+        ;(display (car line))
+        ;(newline)
+        (printf "in the execute-the-goto~n")
+        (when (hash-has-key? *label-table* (car line)) 
+            (printf "in execute-the-goto. found in function-table~n")
+            (printf "going to line: ~s~n~n" (hash-ref *label-table* (car line)))
+
+            (print-statement program (hash-ref *label-table* (car line)))
+           
+            
+        )        
+        ;(when (hash-has-key? *label-table* (car line))
+        ;    (print-statement program (hash-ref *label-table* (car line)))
+        ;)
+    )
 )
 
 (define (write-program-by-line filename program)
@@ -156,14 +231,22 @@
     (for-each (lambda (line) (printf "~s~n" line)) program)
     (printf ")~n")
 
-    ;this part putting into label-table
+    ;this part putting into label-table (do line-number -1 to get right index)
     (for-each 
-        (lambda (line)  (when (>= (length line) 2) (set-label! (cdr line) (car line)) ) )
+        (lambda (line)  
+            (when (> (length line) 1) 
+                (when (not (list? (cadr line)))
+                    (set-label! (cadr line) (- (car line) 1))
+                ) 
+            ) 
+        )
         program
     )
 
     ;go through program line-by-line and execute it
-	(for-each (lambda (line) (print-statement line)) program)
+    (print-statement program 0)
+
+
 )
 
 ;initializing *function-table*
@@ -181,9 +264,11 @@
         (+,+) (-,-) (*,*) (/,/) 
         (<,<) (>,>) (<=,<=) (>=,>=)
         (^,expt) 
-        (print, execute-the-print)
-        (let, execute-the-let)  
-        (if, execute-the-if)    
+        (print, execute-the-print) ;need to do array
+        (let, execute-the-let)     ;array vs variable? + replace? something about asub?
+        (dim, execute-the-dim)     ;not used much so should be good lol
+        (if, execute-the-if)  
+        (goto, execute-the-goto)
     )
 )
 
@@ -204,14 +289,10 @@
         (let* ((sbprogfile (car arglist))
                (program (readlist-from-inputfile sbprogfile)))
                (write-program-by-line sbprogfile program)
-			  ))
-    ;prints out the function-table hash to check if it works
-     (printf "*variable-table*:~n")
-    (hash-for-each *variable-table* 
-        (lambda (key value)
-                (printf "~s = ~s~n" key value))) 
+		))
 
-			  
+    (printf "*label-table*~n")
+    (hash-for-each *label-table* (lambda (key value) (printf "~s = ~s~n" key value)))		  
 );end of main
 
 (printf "terminal-port? *stdin* = ~s~n" (terminal-port? *stdin*))

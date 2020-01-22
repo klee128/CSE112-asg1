@@ -196,11 +196,15 @@
 )
 
 (define (execute-the-goto program line)
-    ;(printf "in execute. line is ~s~n" (car line))
     (when (hash-has-key? *label-table* (car line))
-        ;(printf "in execute. go to index ~s~n" (hash-ref *label-table* (car line)))
         (print-statement program (hash-ref *label-table* (car line)))
     )
+)
+;if array, has to already exist
+;can be for variables too
+;input has to be number
+(define (execute-the-input line)
+    (printf "is input~n")
 )
 
 (define (write-program-by-line filename program)
@@ -249,6 +253,7 @@
         (dim, execute-the-dim)     ;not used much so should be good lol
         (if, execute-the-if)  
         (goto, execute-the-goto)
+        (input, execute-the-input)
     )
 )
 

@@ -1,4 +1,9 @@
 #!/afs/cats.ucsc.edu/courses/cse112-wm/usr/racket/bin/mzscheme -qr
+
+;; Kelsy Lee, klee128
+;; Sruthi Jaganathan, sjaganat
+;; CSE112 Assignment 1
+
 ;; $Id: sbi.scm,v 1.12 2020-01-08 17:13:13-08 - - $
 ;; 
 ;; NAME
@@ -111,19 +116,36 @@
             (if (pair? (cadr line))
                 ;when have function to do
                 (when (hash-has-key? *function-table* (caadr line))
-                     ((hash-ref *function-table* (caadr line)) (cdadr line))
+                    (cond 
+                        ((eqv? (caadr line) 'if)
+                            (execute-the-if program (cdadr line)))
+                        (else 
+                            ((hash-ref *function-table* (caadr line)) (cdadr line))
+                        )
+                    )
+    
                 )
+                
                 ;if label and have function to do
                 (when (and (> (length line) 2) (hash-has-key? *function-table* (caaddr line)) )
-                     ((hash-ref *function-table* (caaddr line)) (cdaddr line)) 
-                )
+
+                    (when (hash-has-key? *function-table* (caaddr line))
+                        (cond 
+                            ((eqv? (caaddr line) 'if)
+                                (execute-the-if program (cdaddr line)))
+                            (else
+                                ((hash-ref *function-table* (caaddr line)) (cdaddr line))
+                            )
+                        )
+                    )
+                )   
             )
         )
         ;move on to next line
         (print-statement program (+ line_number 1))
-    )          
+    )
+)          
 
-)
  
 ;how to print :)
 ;line = everything after 'print'
@@ -136,7 +158,7 @@
     (when (> (length line) 1 )
         (execute-the-print (cdr line))
     )
-    (newline)
+    (newline) 
 )
 
 ;line = variable_name + value
@@ -152,13 +174,19 @@
 )
 
 ;evaluate and check the condition, if it is an if statement
-(define (execute-the-if line)
+(define (execute-the-if program line)
 
-    (display (parse-it(car line)))
+    ;(display (parse-it(car line)))
     (when (> (length line) 0)
         (when (parse-it(car line))
-            (display "Condition evaluated to true!")
-            (newline)
+            ;(display "Condition evaluated to true!")
+            ;(display (car(cdr line)))
+            ;Check if the label table has this label, if it does, extract the line number associated with it, 
+            ;transfer control to this line
+            (when (hash-has-key? *label-table* (car(cdr line)))
+                    ;(display "Going to enter print-statement again")
+                    (print-statement program (hash-ref *label-table* (car(cdr line))))
+            )
         )
     )
 )
@@ -173,7 +201,7 @@
 
     ;this part putting into label-table (do line-number -1 to get right index)
     (for-each 
-        (lambda (line)  (when (= (length line) 3) (set-label! (cadr line) (- (car line) 1)) ) )
+        (lambda (line)  (when (eqv? (length line) 3) (set-label! (cadr line) (- (car line) 1)) ) )
         program
     )
 
